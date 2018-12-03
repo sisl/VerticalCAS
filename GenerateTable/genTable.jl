@@ -2,6 +2,7 @@
 @everywhere push!(LOAD_PATH,"mdp")
 @everywhere using ParallelValueIteration
 @everywhere using VerticalCAS
+using HDF5
 
 ### OPTIONS ###
 saveFile = "./VertCAS_qvals_parallel_v7_tauMax40.h5"
