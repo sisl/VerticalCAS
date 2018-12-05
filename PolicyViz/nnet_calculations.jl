@@ -221,10 +221,10 @@ function evaluate_network(nnet::NNet,input::Array{Float64,1})
     end
 
     for layer = 1:numLayers-1
-        temp = max.(*(weights[nnetInd][layer],inputs[1:nnet.layerSizes[layer]])+biases[nnetInd][layer],0)
+        temp = max.(weights[nnetInd][layer]*inputs[1:nnet.layerSizes[layer]]+biases[nnetInd][layer],0)
         inputs = temp
     end
-    outputs = *(weights[nnetInd][end],inputs[1:nnet.layerSizes[end-1]])+biases[nnetInd][end]
+    outputs = weights[nnetInd][end]*inputs[1:nnet.layerSizes[end-1]]+biases[nnetInd][end]
     for i=1:outputSize
         outputs[i] = outputs[i]*nnet.ranges[end]+nnet.means[end]
     end
@@ -279,9 +279,9 @@ function evaluate_network_multiple(nnet::NNet,input::Array{Float64,2})
     end
 
     for layer = 1:numLayers-1
-        inputs = max.(*(weights[nnetInd][layer],inputs[1:nnet.layerSizes[layer],:])+*(biases[nnetInd][layer],ones(1,numInputs)),0)
+        inputs = max.(weights[nnetInd][layer]*inputs[1:nnet.layerSizes[layer],:]+biases[nnetInd][layer]*ones(1,numInputs),0)
     end
-    outputs = *(weights[nnetInd][end],inputs[1:nnet.layerSizes[end-1],:])+*(biases[nnetInd][end],ones(1,numInputs))
+    outputs = weights[nnetInd][end]*inputs[1:nnet.layerSizes[end-1],:]+biases[nnetInd][end]*ones(1,numInputs)
     for i=1:outputSize
         for j=1:numInputs
             outputs[i,j] = outputs[i,j]*nnet.ranges[end]+nnet.means[end]

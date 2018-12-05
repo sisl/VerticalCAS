@@ -1,9 +1,11 @@
+# Helper functions
 sameSense(pra::Int, ra::Int) = mod(pra,2)==mod(ra,2)
 downSense(ra::Int) = (ra>0) .& (mod(ra,2)==1)
 upSense(ra::Int) = (ra>0) .& (mod(ra,2)==0)
 
+# Reward function for VerticalCAS MDP
 function POMDPs.reward(mdp::VerticalCAS_MDP, s::stateType, ra::actType)
-    h = s[1]; vown = s[2]; vint = s[3]; pra = s[4]; resp = s[5]; #tau = s[6]
+    h = s[1]; vown = s[2]; vint = s[3]; pra = s[4]; resp = s[5];
     tau = mdp.currentTau
     r = 0.0
     sep = abs(h)

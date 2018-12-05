@@ -1,23 +1,16 @@
-export relhs,dh0s,dh1s,taus,pa,NSTATES,ACTIONS
+export relhs,dh0s,dh1s,taus,pas,nstates,actions, action_names
 
-#const relhs = [-8000, -7000, -6000, -5000, -4000, -3000, -2500, -2000, -1500, -1250, -1000, -950, -900, -850, -800, -750, -700, -650, -600, -550, -500, -450, -400, -350, -300, -250, -200, -150, -100, -50, 0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000]
-
-#const dh0s = [-100, -83.3333, -66.6667, -50, -41.6667, -33.3333, -25, -16.6667, -8.33333, 0, 8.33333, 16.6667, 25, 33.3333, 41.6667, 50, 66.6667, 83.3333, 100] 
-#const dh1s   = [-100, -83.3333, -66.6667, -50, -41.6667, -33.3333, -25, -16.6667, -8.33333, 0, 8.33333, 16.6667, 25, 33.3333, 41.6667, 50, 66.6667, 83.3333, 100]
-#const taus   = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38,39,40,]
-#const pas    = [1, 2, 3, 4, 5,6,7,8,9,10,11]
-
-#const pasTrue = [0, -1.5, 1.5, -3.0, 3.0]
-
-
+# State dimension cutpoints
 const vels = vcat(linspace(-100,-60,5),linspace(-50,-35,4),linspace(-30,30,21),linspace(35,50,4),linspace(60,100,5))
 const relhs   = vcat(linspace(-8000,-4000,5),linspace(-3000,-1250,8),linspace(-1000,-800,3),linspace(-700,-150,12),linspace(-100,100,9), linspace(150,700,12),linspace(800,1000,3),linspace(1250,3000,8),linspace(4000,8000,5))
-
 const dh0s = vels
 const dh1s = vels
 const taus  = linspace(0,40,41)
-
-
-const NSTATES = length(relhs)*length(dh0s)*length(taus)*length(dh1s)
-const ACTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const pas = [1,2,3,4,5,6,7,8,9]
+
+# Number of states
+const nstates = length(relhs)*length(dh0s)*length(taus)*length(dh1s)
+
+# Actions
+const actions = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+const action_names = ["COC","DNC","DND","DES1500","CL1500","SDES1500","SCL1500","SDES2500","SCL2500"]

@@ -1,3 +1,4 @@
+# Defines a solver type
 mutable struct ParallelValueIterationSolver{I<:LocalFunctionApproximator} <: Solver
     interp::I
     max_iterations::Int64 # max number of iterations
@@ -9,6 +10,7 @@ mutable struct ParallelValueIterationSolver{I<:LocalFunctionApproximator} <: Sol
     n_procs::Int64
 end
 
+# Solver with initial value function argument
 function ParallelValueIterationSolver(interp::I;
                                max_iterations::Int64 = 100, 
                                belres::Float64 = 1e-3,
@@ -68,6 +70,7 @@ function ValueIterationPolicy(mdp::Union{MDP,POMDP}, q::Matrix{Float64})
 end
 
 
+# Function for solving an MDP using parallel value iteration
 function solve(solver::ParallelValueIterationSolver,mdp::Union{MDP, POMDP})
     max_iterations = solver.max_iterations
     n_procs = solver.n_procs
@@ -95,10 +98,9 @@ function solve(solver::ParallelValueIterationSolver,mdp::Union{MDP, POMDP})
     end
 
     # init shared utility function and Q-matrix    
-    ns = length(interp_states)#n_states(mdp)
+    ns = length(interp_states)
     na = n_actions(mdp)
 
-    #chunk_batches = split_states(ns, n_procs,n_batches)
     state_chunks = split_states(ns, n_procs)
     
     println("Sharing with workers")
@@ -129,8 +131,11 @@ function solve(solver::ParallelValueIterationSolver,mdp::Union{MDP, POMDP})
     pool = CachingPool(workers())
     iter_time  = 0.0
     total_time = 0.0
+    
     println("Solving chunks")
     flush(stdout)
+    
+    # Q-matrix to return
     qmats = zeros(ns*length(mdp.taus),na)
     
     for i =1:length(mdp.taus)
@@ -149,7 +154,7 @@ function solve(solver::ParallelValueIterationSolver,mdp::Union{MDP, POMDP})
     return qmats
 end
 
-# updates shared utility and Q-Matrix using gauss-seidel value iteration (asynchronous)
+# Updates shared utility and Q-Matrix using gauss-seidel value iteration (asynchronous)
 function solve_chunk(mdp::M, 
                     tau::Float64,
                     interp::LocalFunctionApproximator,
@@ -172,7 +177,7 @@ function solve_chunk(mdp::M,
         else
             old_util = util[istate] # for maxValue
             max_util = -Inf
-            for a in [0,1,2,3,4,5,6,7,8]#sub_aspace
+            for a in sub_aspace
                 iaction = actionindex(mdp, a)
                 dist = transition(mdp, s, a) # creates distribution over neighbors
                 u = 0.0
@@ -195,14 +200,15 @@ function solve_chunk(mdp::M,
             
             
             util[istate] = max_util
-            diff = abs(max_util) # - old_util)
+            diff = abs(max_util)
             
             diff > maxValue[1] ? (maxValue[1] = diff) : nothing
         end
-    end # state loop
+    end
     return 
 end
 
+# Split the states into separate chunks based on number of processors
 function split_states(ns::Int64, n_procs::Int64)
     state_chunks = Vector{UnitRange{Int64}}(undef, n_procs)
     stride = div(ns, n_procs)

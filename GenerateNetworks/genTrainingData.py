@@ -6,7 +6,7 @@ tableFile = '../GenerateTable/VertCAS_qvals_parallel_v7_tauMax40.h5'
 trainingDataFiles = '../TrainingData/VertCAS_TrainingData_v2_%02d.h5'
 ######################
 
-# Define state space
+# Define state space. Make sure this matches up with the constants used to generate the MDP table!
 acts = [0,1,2,3,4,5,6,7,8]
 vels = np.concatenate((np.linspace(-100,-60,5),np.linspace(-50,-35,4),np.linspace(-30,30,21),np.linspace(35,50,4),np.linspace(60,100,5)))
 hs   = np.concatenate((np.linspace(-8000,-4000,5),np.linspace(-3000,-1250,8),np.linspace(-1000,-800,3),np.linspace(-700,-150,12),np.linspace(-100,100,9),np.linspace(150,700,12),np.linspace(800,1000,3),np.linspace(1250,3000,8),np.linspace(4000,8000,5)))
@@ -27,6 +27,7 @@ Qtaus = [Q[i*ns2:(i*ns2+ns2/2)] for i in range(len(taus))]
 ns = len(hs)*len(vowns)*len(vints)
 Qacts = [np.concatenate([Qtaus[i][ns*j:(j+1)*ns] for i in range(len(taus))]) for j in range(len(acts))]
 
+# Compute means, ranges, mins and maxes
 means = np.mean(X,axis=0)
 ranges = np.max(X,axis=0)-np.min(X,axis=0)
 X =(X-means)/ranges
@@ -41,9 +42,8 @@ ranges = np.concatenate((ranges,[rangeQ]))
 min_inputs = np.array([hs[0],vowns[0],vints[0],taus[0]])
 max_inputs = np.array([hs[-1],vowns[-1],vints[-1],taus[-1]])
 
-
+#Save the Training Data
 for ra in range(1,10):
-  #Save the Training Data
   with h5py.File(trainingDataFiles%ra,'w') as H:
       H.create_dataset('X',data=X)
       H.create_dataset('y',data=Qacts[ra-1])

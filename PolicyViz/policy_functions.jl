@@ -28,18 +28,10 @@ function get_qval!(policy::Policy, belief::SparseMatrixCSC{Float64, Int64})
             policy.qvals[iaction] += belief.nzval[ib] * policy.alpha[belief.rowval[ib], iaction]
         end # for b
     end # for iaction
-    #println(policy.qvals)
 end # function get_qval!
 
 function get_belief(pstate::Vector{Float64}, grid::RectangleGrid,interp::Bool=false,drl::Bool=false,XandY::Bool=false)
-    belief = spzeros(NSTATES, 1)
-    if drl
-        if XandY
-            belief = spzeros(NSTATES_drl_xandy,1)
-        else
-            belief = spzeros(NSTATES_drl,1)
-        end
-    end
+    belief = spzeros(nstates, 1)
     indices, weights = interpolants(grid, pstate)
     if !interp
         largestWeight = 0;
