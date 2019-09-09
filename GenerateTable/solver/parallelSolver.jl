@@ -181,9 +181,9 @@ function solve_chunk(mdp::M,
                 iaction = actionindex(mdp, a)
                 dist = transition(mdp, s, a) # creates distribution over neighbors
                 u = 0.0
+                r = reward(mdp, s, a)
                 for (sp, p) in weighted_iterator(dist)
-                    p == 0.0 ? continue : nothing # skip if zero prob
-                    r = reward(mdp, s, a, sp)
+                    p == 0.0 ? continue : nothing # skip if zero prob                    
                     u += p*r
                     # Only interpolate sp if it is non-terminal
                     if !isterminal(mdp,sp)
