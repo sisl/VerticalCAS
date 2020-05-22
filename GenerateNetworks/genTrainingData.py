@@ -2,8 +2,8 @@ import h5py
 import numpy as np
 
 ###### OPTIONS #######
-tableFile = '../GenerateTable/VertCAS_qvals_parallel_v7_tauMax40.h5'
-trainingDataFiles = '../TrainingData/VertCAS_TrainingData_v2_%02d.h5'
+tableFile = '/raid/kjulian3/VertCAS/Qtables/VertCAS_noResp_newTrans_v5.h5'
+trainingDataFiles = '/raid/kjulian3/VertCAS/TrainingData/VertCAS_noResp_newTrans_TrainingData_v5_%02d.h5'
 ######################
 
 # Define state space. Make sure this matches up with the constants used to generate the MDP table!
@@ -22,8 +22,8 @@ f = h5py.File(tableFile,'r')
 Q = np.array(f['q'])
 f.close()
 Q = Q.T
-ns2 = len(hs)*len(vowns)*len(vints)*len(acts)*2
-Qtaus = [Q[i*ns2:(i*ns2+ns2/2)] for i in range(len(taus))]
+ns2 = len(hs)*len(vowns)*len(vints)*len(acts)
+Qtaus = [Q[i*ns2:(i*ns2+ns2)] for i in range(len(taus))] # Only use resp=False
 ns = len(hs)*len(vowns)*len(vints)
 Qacts = [np.concatenate([Qtaus[i][ns*j:(j+1)*ns] for i in range(len(taus))]) for j in range(len(acts))]
 

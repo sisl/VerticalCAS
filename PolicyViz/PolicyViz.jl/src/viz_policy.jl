@@ -1,6 +1,46 @@
 export viz_policy
 
-function viz_policy(nnet_folder::AbstractString="",table_folder::AbstractString="",vnum::Int64=4, hu::Int64=45, epoch::Int64=200)
+
+"""
+Helper function to draw aircraft
+"""
+function getACString(theta,x,y,fill,draw,width=2.0)
+    return "\\node[aircraft side,fill="*fill*",draw="*draw*", minimum width="*string(width)*"cm,rotate="*string(theta)*",scale = 0.35] at (axis cs:"*string(x)*", "*string(y)*") {};"
+end
+
+
+function get_belief(pstate::Vector{Float64}, grid::RectangleGrid,interp::Bool=false)
+    belief = spzeros(nstates, 1)
+    indices, weights = interpolants(grid, pstate)
+    if !interp
+        indices = indices[findmax(weights)[2]]
+        weights = 1.0
+    end
+    for i = 1:length(indices)
+        belief[indices[i]] = weights[i]
+    end # for i
+    return belief
+end # function get_belief
+
+function getRevActions(pra)
+    if (pra>1) && (mod(pra,2)==0)
+        return [3,5,7,9]
+    elseif (pra>1)
+        return [2,4,6,8]
+    end
+    return []
+end
+
+function prevRev(qvals,preventFlag,pra)
+   if preventFlag
+       for ra in getRevActions(pra)
+            qvals[ra]-=1e8
+        end
+    end
+    return qvals
+end
+
+function viz_policy(nnet_folder::AbstractString="",nnet_prefix::AbstractString="",table_folder::AbstractString="",table_prefix::AbstractString="",vnum::Int64=4, hu::Int64=45, epoch::Int64=200)
     
     # Make sure one of the folder paths is given
     if nnet_folder=="" && table_folder==""
@@ -11,8 +51,18 @@ function viz_policy(nnet_folder::AbstractString="",table_folder::AbstractString=
     # Important variables
     currentPra = -1
     nnet = []
-    policy = []
+    Q = nothing
     grid = RectangleGrid(relhs,dh0s,dh1s,taus)
+    
+    
+    
+    COC = RGB(1.,1.,1.) # white
+    SR = RGB(.0,.0,.5) # navy
+    SL = RGB(.0,.600,.0) # green
+    WR = RGB(.5,.5,.5) # grey
+    WL = RGB(.7,.9,.0) # neon green
+    ra_colors = [SL,WL,COC,WR,SR]
+    bg_colors = [COC]
     
     # Colors
     ra_1 = RGB(1.,1.,1.) # white
@@ -24,6 +74,20 @@ function viz_policy(nnet_folder::AbstractString="",table_folder::AbstractString=
     ra_7 = RGB(34.0/255.0,139.0/255.0,34.0/255.0) # forestgreen
     ra_8 = RGB(0.0,0.0,128.0/255.0) # navy
     ra_9 = RGB(0.0,100.0/255.0,0.0) # darkgreen
+    
+    
+    ## FOR PAPER
+    ra_2 = WR
+    ra_4 = SR #RGB(0.0,0.0,1.0)
+    ra_6 = SR
+    ra_8 = RGB(0.2, 0.0, 0.3)
+    
+    ra_3 = WL
+    ra_5 = SL #RGB(0.0,1.0,0.0)
+    ra_7 = SL
+    ra_9 = RGB(.2,.300,.0)
+    
+    
     colors = [ra_1;ra_2;ra_3;ra_4;ra_5;ra_6;ra_7;ra_8;ra_9]
     bg_colors = [RGB(1.0,1.0,1.0)]
     
@@ -54,24 +118,23 @@ function viz_policy(nnet_folder::AbstractString="",table_folder::AbstractString=
         ymax = 1000.0,
         dh0 = 0.0, 
         dh1 = 0.0, 
-        pra = action_names
+        pra = action_names,
+        preventRev = [false,true]
         
         # Get previous RA index
-        pra = find(pra.==action_names)[1]
+        pra = findall(pra.==action_names)[1]
         if pra != currentPra
             if table_folder !=""
-                alpha = h5open(@sprintf("%s/VertCAS_TrainingData_v2_%02d.h5",table_folder,pra), "r") do file
+                Q = h5open(@sprintf("%s/%s_%02d.h5",table_folder,table_prefix,pra), "r") do file
                     read(file, "y")
                 end
-                alpha = alpha';
-                policy = read_policy(reshape(actions,(1,9)), alpha)
             end
             
             if nnet_folder != "" 
                 if epoch>0
-                    nnet = NNet(@sprintf("%s/VertCAS_pra%02d_v%d_%dHU_%03d.nnet",nnet_folder,pra,vnum,hu,epoch))
+                    nnet = read_network(@sprintf("%s/%s_pra%02d_v%d_%dHU_%03d.nnet",nnet_folder,nnet_prefix,pra,vnum,hu,epoch))
                 else
-                    nnet = NNet(@sprintf("%s/VertCAS_pra%02d_v%d_%dHU.nnet",nnet_folder,pra,vnum, hu))
+                    nnet = read_network(@sprintf("%s/%s_pra%02d_v%d_%dHU.nnet",nnet_folder,nnet_prefix,pra,vnum, hu))
                 end
             end
             currentPra = pra
@@ -79,24 +142,32 @@ function viz_policy(nnet_folder::AbstractString="",table_folder::AbstractString=
         
         # Evaluate network at pixel points
         if nnet_folder != ""
-            inputsNet = hcat([[relh,dh0,dh1,tau] for tau=linspace(xmin, xmax,nbin) for relh=linspace(ymin,ymax,nbin)]...)
-            q_nnet = evaluate_network_multiple(nnet,inputsNet)
+            if num_inputs(nnet)==3
+                inputsNet = hcat([[relh,dh0,tau] for tau=LinRange(xmin, xmax,nbin) for relh=LinRange(ymin,ymax,nbin)]...)
+                q_nnet = evaluate_network_multiple(nnet,inputsNet)
+            else        
+                inputsNet = hcat([[relh,dh0,dh1,tau] for tau=LinRange(xmin, xmax,nbin) for relh=LinRange(ymin,ymax,nbin)]...)
+                q_nnet = evaluate_network_multiple(nnet,inputsNet)
+            end
         end
         
         # Q Table Heat Map
         function get_heat1(x::Float64, y::Float64)
             tau = x 
             relh = y
-            qvals = evaluate(policy, get_belief([relh,dh0,dh1,tau],grid,false))
-            return actions[indmax(qvals)]
+            bel = get_belief([relh,dh0,dh1,tau],grid,false)
+            qvals = Q[:,bel.rowval[1]]
+            qvals = prevRev(qvals,preventRev,pra)                                   
+            return actions[findmax(qvals)[2]]
         end # function get_heat1
         
         ind = 1
         #Neural Net Heat Map
         function get_heat2(x::Float64, y::Float64)                        
             qvals = q_nnet[:,ind]
+            qvals = prevRev(qvals,preventRev,pra)  
             ind +=1
-            return actions[indmax(qvals)]
+            return actions[findmax(qvals)[2]]
         end # function get_heat2
         
         #Plot table or neural network policies if possible

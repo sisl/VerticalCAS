@@ -1,14 +1,14 @@
 export get_belief,get_qval!,Policy,read_policy,evaluate
 
-type Policy
+mutable struct Policy
     alpha       :: Matrix{Float64}
     actions     :: Array{Int64,2}
     nactions    :: Int64
     qvals       :: Vector{Float64}
+end
 
-    function Policy(alpha::Matrix{Float64}, actions::Array{Int64,2})
-        return new(alpha, actions, size(actions,2), zeros(size(actions,2)))
-    end # function Policy
+function Policy(alpha::Matrix{Float64}, actions::Array{Int64,2})
+    return Policy(alpha, actions, size(actions,2), zeros(size(actions,2)))
 end
 
 function read_policy(actions::Array{Int64,2}, alpha::Matrix{Float64})
@@ -30,19 +30,11 @@ function get_qval!(policy::Policy, belief::SparseMatrixCSC{Float64, Int64})
     end # for iaction
 end # function get_qval!
 
-function get_belief(pstate::Vector{Float64}, grid::RectangleGrid,interp::Bool=false,drl::Bool=false,XandY::Bool=false)
-    belief = spzeros(nstates, 1)
+function get_belief(pstate::Vector{Float64}, grid::RectangleGrid,interp::Bool=false)
+    belief = spzeros(NSTATES, 1)
     indices, weights = interpolants(grid, pstate)
     if !interp
-        largestWeight = 0;
-        largestIndex = 0;
-        for i = 1:length(weights)
-            if weights[i]>largestWeight
-                largestWeight = weights[i]
-                largestIndex = indices[i]
-            end
-        end
-        indices = largestIndex
+        indices = indices[findmax(weights)[2]]
         weights = 1.0
     end
     for i = 1:length(indices)

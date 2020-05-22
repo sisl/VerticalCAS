@@ -1,50 +1,23 @@
 # State transition function
 function POMDPs.transition(mdp::VerticalCAS_MDP, s::stateType, ra::actType)
-    h = s[1]; vown = s[2]; vint = s[3]; pra = s[4]; prev_resp = s[5]
+    h = s[1]; vown = s[2]; vint = s[3]; pra = s[4];
     
     # Computation is faster when using vector of static size
-    nextStates = MVector{18, stateType}(undef)
+    nextStates = MVector{9, stateType}(undef)
     nextProbs = @MVector(zeros(18))
+    next_pra = ra
     ind=1
 
-    # Compute probability that new advisory will be followed
-    prob_resp = 0.0
-    if (ra==COC) .| (prev_resp .& (pra==ra))
-        prob_resp=1.0
-    elseif (pra==COC)
-        prob_resp = 1.0/(1+5.)
-    elseif sameSense(pra,ra)
-        prob_resp = 1.0/(1+3.)
-    else
-        prob_resp = 1.0/(1+5.)
-    end
-
     # Compute probabilities of next states using sigma point sampling
-    next_resp = true
-    next_pra  = ra
-    ownProbs, ownAccels = mdp.accels[ra]
-    intProbs, intAccels = mdp.accels[COC]
+    ownProbs, ownAccels = mdp.accels[pra]
+    intProbs, intAccels = mdp.accels[-1]
     for i = 1:3
         for j = 1:3
-            next_h,next_vown,next_vint = dynamics(h,vown,vint,ownAccels[i],intAccels[j],ra,mdp)
-            nextStates[ind] = (next_h,next_vown,next_vint,next_pra,next_resp)
-            nextProbs[ind]  = prob_resp*ownProbs[i]*intProbs[j]
+            next_h,next_vown,next_vint = dynamics(h,vown,vint,ownAccels[i],intAccels[j],pra,mdp)
+            nextStates[ind] = (next_h,next_vown,next_vint,next_pra)
+            nextProbs[ind]  = ownProbs[i]*intProbs[j]
             ind+=1
         end
-    end
-
-    if prob_resp<1.0
-        prob_notResp = 1.0-prob_resp
-        next_resp=false
-        ownProbs, ownAccels = mdp.accels[COC]
-        for i = 1:3
-            for j = 1:3
-                next_h,next_vown,next_vint = dynamics(h,vown,vint,ownAccels[i],intAccels[j],COC,mdp)
-                nextStates[ind] = (next_h,next_vown,next_vint,next_pra,next_resp)
-                nextProbs[ind]  = prob_notResp*ownProbs[i]*intProbs[j]
-                ind+=1
-            end
-        end 
     end
 
     return SparseCat(nextStates,nextProbs)
