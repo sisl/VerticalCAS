@@ -20,7 +20,7 @@ VerticalCAS_MDP() = VerticalCAS_MDP(hs,vowns,vints,acts,resps,taus,discount_f,ac
 POMDPs.actionindex(::VerticalCAS_MDP, a::actType) = a + 1
 POMDPs.actions(mdp::VerticalCAS_MDP)  = acts
 POMDPs.discount(mdp::VerticalCAS_MDP) = mdp.discount_factor
-POMDPs.n_actions(::VerticalCAS_MDP)   = length(acts)
+#POMDPs.n_actions(::VerticalCAS_MDP)   = length(acts)
 
 function POMDPs.convert_s(::Type{V} where V <: AbstractVector{Float64}, s::stateType, mdp::VerticalCAS_MDP)
     v = [s[1],s[2],s[3],convert(Float64,s[4]),convert(Float64,s[5])] #,s[6]]
